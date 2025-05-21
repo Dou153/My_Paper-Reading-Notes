@@ -41,7 +41,7 @@ VFL中的本地更新有两个缺点：
 - $R$： 每个小批次的最大使用次数；
 - $W$ : 工作集表的大小（缓存的小批次数）；
 - $\xi$：实例权重机制中的阈值；
-- $Z_A^{(i)},\nabla Z_A^{(i)}$：第$i$个batch，用户$a$的正向推理结果和反向传播梯度
+- $Z_A^{(i)},\nabla Z_A^{(i)}$：第$i$个batch，用户$a$的正向推理结果和反向传播梯度，$\nabla Z_A^{(i)} = \frac{\partial L}{\partial Z_A^i}$
 
 - $Z_A^{(i,j)},\nabla Z_A^{(i,j)}$：第$i$个batch在第$j$次更新时的正向推理结果和反向传播梯度
 
@@ -71,6 +71,10 @@ VFL中的本地更新有两个缺点：
 
 ![image-20250514102143634](E:\论文\论文阅读笔记\My_Paper-Reading-Notes\纵向联邦\CRLU-VFL\CELU-VFL.assets\image-20250514102143634.png)
 
+<center>图1 CELU-VFL方案图<center>
+
+
+
  在上图Party B中的本地线程中，首先从工作集表中随机抽取一个batch，然后本地线程进行正向推理，然后利用得到的$\nabla Z_A^{(i)}$
 和$\nabla Z_A^{(i,j)}$计算权重，得到权重后再进行加权的反向传播
 
@@ -84,7 +88,7 @@ VFL中的本地更新有两个缺点：
 
 <img src="E:\论文\论文阅读笔记\My_Paper-Reading-Notes\纵向联邦\CRLU-VFL\CELU-VFL.assets\image-20250514105630013.png" alt="image-20250514105630013"  />
 
-该方案设计了一个简单但有效的循环局部采样策略，该策略强调工作集的每个小批次不呢个在接下来的W-1个步骤中再次采样。如下图所示。
+该方案设计了一个简单但有效的循环局部采样策略，该策略强调工作集的每个小批次不呢个在接下来的W-1个步骤中再次采样。如下图所示的并行线程。
 
 ![image-20250514110809777](E:\论文\论文阅读笔记\My_Paper-Reading-Notes\纵向联邦\CRLU-VFL\CELU-VFL.assets\image-20250514110809777.png)
 
@@ -93,3 +97,41 @@ VFL中的本地更新有两个缺点：
 
 
 ### 权重机制
+
+![image-20250514102143634](E:\论文\论文阅读笔记\My_Paper-Reading-Notes\纵向联邦\CRLU-VFL\CELU-VFL.assets\image-20250514102143634.png)
+
+<center>图1 CELU-VFL方案图<center>
+
+尽管已经有各种各样的工作讨论梯度优化算法对梯度中的某些噪声具有鲁棒性，但当陈旧性较大时，模型性能将不可避免地受到损害。
+
+**这篇文章使用前向推理和后向导数的余弦相似度来衡量批次的陈旧性。**
+
+如图一所示，party A没有标签，因此只能进行正向推理，在本地迭代时，它只能使用抽样的批次进行正向传播，正向传播得到本地输出后$Z_A^{(i,j)},\nabla Z_A^{(i,j)}$与$Z_A^{(i)}$进行余弦相似度（权重）计算。
+
+party B有标签，因此它可以使用工作集表中存储的$Z_A^{(i)}$和本地算出的$Z_B^{(i,j)}$合起来计算梯度$\nabla \hat{y}^{(i,j)}$，然后使用$\nabla Z_A^{(i,j)}$和工作集表的$Z_A^{(i)}$计算权重。
+
+
+
+文中给出的解释：
+
+对于全连接网络
+
+$\theta \in R^{d_{in}\times d_{outs}}$	
+
+$\nabla \theta=\frac{\partial L}{\partial Z}\cdot \frac{\partial Z}{\partial \theta}=Z_{in}^T\cdot  \nabla Z_{out}$
+
+$\nabla \tilde{\theta}=\frac{\partial L}{\partial Z}\cdot \frac{\partial Z}{\partial \tilde{\theta}}=Z_{in}^T\cdot  \nabla \tilde{Z}_{out}$
+
+假设$\tilde{\nabla}z_{out}$是旧梯度，当二维矩阵$(\nabla\theta,\tilde{\nabla}\theta)$是平坦的。
+
+$\cos(\nabla\theta,\tilde{\nabla}\theta)=\cos(\nabla z_{out},\tilde{\nabla}z_{out})$
+
+
+
+
+
+
+
+## 可以改进的地方
+
+那个权重计算看看能不能用Shapley值代替
