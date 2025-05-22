@@ -54,7 +54,7 @@ $$
 
 ### 经典的训练流程
 
-![image-20250513092510615](E:\论文\论文阅读笔记\My_Paper-Reading-Notes\纵向联邦\FedBCD\FedBCD.assets\image-20250513092510615.png)
+![image-20250513092510615](.\FedBCD.assets\image-20250513092510615.png)
 
 
 
@@ -137,7 +137,7 @@ $$
 
 ![image-20250512110736006](E:\论文\论文阅读笔记\My_Paper-Reading-Notes\纵向联邦\FedBCD\FedBCD.assets\image-20250512110736006.png)
 
-![1](E:\论文\论文阅读笔记\My_Paper-Reading-Notes\纵向联邦\FedBCD\FedBCD.assets\1.png)
+![1](.\FedBCD.assets\1.png)
 
 **在本地进行更新迭代时，由于本地无法单独进行梯度下降，因此只能使用相同的陈旧小批次进行梯度下降。**
 
