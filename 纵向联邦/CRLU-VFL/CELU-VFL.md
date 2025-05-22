@@ -69,7 +69,7 @@ VFL中的本地更新有两个缺点：
 
 **与FedBCD不同，CELU-VFL利用循环局部抽样策略来选择不同的mini-batch进行本地更新以降低随机方差，并且引入权因子，以减轻陈旧性带来的影响**
 
-![image-20250514102143634](E:\论文\论文阅读笔记\My_Paper-Reading-Notes\纵向联邦\CRLU-VFL\CELU-VFL.assets\image-20250514102143634.png)
+![image-20250514102143634](.\CELU-VFL.assets\image-20250514102143634.png)
 
 <center>图1 CELU-VFL方案图<center>
 
@@ -86,11 +86,11 @@ VFL中的本地更新有两个缺点：
 
 如下图所示，如果每个小批次用于连续步骤，则随机方差将累积并阻碍收敛。如果我们均匀地应用小批量，例如通过交替使用小批量，则可以减轻这种随机方差。
 
-<img src="E:\论文\论文阅读笔记\My_Paper-Reading-Notes\纵向联邦\CRLU-VFL\CELU-VFL.assets\image-20250514105630013.png" alt="image-20250514105630013"  />
+<img src=".\CELU-VFL.assets\image-20250514105630013.png" alt="image-20250514105630013"  />
 
 该方案设计了一个简单但有效的循环局部采样策略，该策略强调工作集的每个小批次不呢个在接下来的W-1个步骤中再次采样。如下图所示的并行线程。
 
-![image-20250514110809777](E:\论文\论文阅读笔记\My_Paper-Reading-Notes\纵向联邦\CRLU-VFL\CELU-VFL.assets\image-20250514110809777.png)
+![image-20250514110809777](.\CELU-VFL.assets\image-20250514110809777.png)
 
 这种策略相比于FedBCD，在每个小批次的最大使用次数$R$相同时，CELU-VFL收敛的更快。
 
@@ -98,7 +98,7 @@ VFL中的本地更新有两个缺点：
 
 ### 权重机制
 
-![image-20250514102143634](E:\论文\论文阅读笔记\My_Paper-Reading-Notes\纵向联邦\CRLU-VFL\CELU-VFL.assets\image-20250514102143634.png)
+![image-20250514102143634](.\CELU-VFL.assets\image-20250514102143634.png)
 
 <center>图1 CELU-VFL方案图<center>
 
