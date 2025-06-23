@@ -69,7 +69,7 @@ VFL中的本地更新有两个缺点：
 
 **与FedBCD不同，CELU-VFL利用循环局部抽样策略来选择不同的mini-batch进行本地更新以降低随机方差，并且引入权因子，以减轻陈旧性带来的影响**
 
-![image-20250514102143634](.\CELU-VFL.assets\image-20250514102143634.png)
+![image-20250514102143634](.\assets\image-20250514102143634.png)
 
 <center>图1 CELU-VFL方案图<center>
 
@@ -86,11 +86,11 @@ VFL中的本地更新有两个缺点：
 
 如下图所示，如果每个小批次用于连续步骤，则随机方差将累积并阻碍收敛。如果我们均匀地应用小批量，例如通过交替使用小批量，则可以减轻这种随机方差。
 
-<img src=".\CELU-VFL.assets\image-20250514105630013.png" alt="image-20250514105630013"  />
+<img src=".\assets\image-20250514105630013.png" alt="image-20250514105630013"  />
 
 该方案设计了一个简单但有效的循环局部采样策略，该策略强调工作集的每个小批次不呢个在接下来的W-1个步骤中再次采样。如下图所示的并行线程。
 
-![image-20250514110809777](.\CELU-VFL.assets\image-20250514110809777.png)
+![image-20250514110809777](.\assets\image-20250514110809777.png)
 
 这种策略相比于FedBCD，在每个小批次的最大使用次数$R$相同时，CELU-VFL收敛的更快。
 
@@ -98,7 +98,7 @@ VFL中的本地更新有两个缺点：
 
 ### 权重机制
 
-![image-20250514102143634](.\CELU-VFL.assets\image-20250514102143634.png)
+![image-20250514102143634](.\assets\image-20250514102143634.png)
 
 <center>图1 CELU-VFL方案图<center>
 
@@ -108,7 +108,7 @@ VFL中的本地更新有两个缺点：
 
 如图一所示，party A没有标签，因此只能进行正向推理，在本地迭代时，它只能使用抽样的批次进行正向传播，正向传播得到本地输出后$Z_A^{(i,j)},\nabla Z_A^{(i,j)}$与$Z_A^{(i)}$进行余弦相似度（权重）计算。
 
-party B有标签，因此它可以使用工作集表中存储的$Z_A^{(i)}$和本地算出的$Z_B^{(i,j)}$合起来计算梯度$\nabla \hat{y}^{(i,j)}$，然后使用$\nabla Z_A^{(i,j)}$和工作集表的$Z_A^{(i)}$计算权重。
+party B有标签，因此它可以使用工作集表中存储的$Z_A^{(i)}$和本地算出的$Z_B^{(i,j)}$合起来计算梯度$\nabla \hat{y}^{(i,j)}$，然后使用$\nabla Z_A^{(i,j)}$和工作集表的$\nabla Z_A^{(i)}$计算权重。
 
 
 
@@ -130,8 +130,116 @@ $\cos(\nabla\theta,\tilde{\nabla}\theta)=\cos(\nabla z_{out},\tilde{\nabla}z_{ou
 
 
 
+## 实验设置
+
+使用wdl和dssm推荐模型，这里介绍wdl模型
+
+这个模型时Google在2016年提出的推荐系统点击率预测模型
+
+
+
+![v2-efdc12dc66b8196bee878e19b54d3053_1440w](./assets/v2-efdc12dc66b8196bee878e19b54d3053_1440w.webp)
+
+
+
+训练集90000个样本，验证集100000个样本，batch_size设为128，训练集一共被分为7032个batch
+
+工作集表存5个batch，每个batch都会参与5次本地更新
+
+参与者分别是guest和host，**guest有标签**
+
+guest和host输出都是256维的特征向量，双方进行特征提取后，将2者的特征拼接为一个512维的向量，然后通过一层全连接神经网络转为1维，再经过sigmoid函数得到点击率概率。损失函数是交叉熵损失函数，最后除batch_size得到平均损失
+
+
+
 
 
 ## 可以改进的地方
 
 那个权重计算看看能不能用Shapley值代替
+
+
+
+
+
+
+
+
+
+## 代码
+
+在pytorch中，反向传播之后只会保存模型参数的梯度，其他梯度都会被删除以节省存储空间。若想查看其他节点的梯度，对该节点的tensor使用.retain_grad()保存梯度。
+
+```python
+####测试backward
+
+def model_test(x,w1,w2,b):			#模型有3个参数，w1,w2,b
+    y = w1*x**2+w2*x+b
+    return y
+
+#初始化3个参数，并设置他们的requires_grad属性，若是使用pytorch自带的linear，Conv2d等函数则不用设置该属性，pytorch会自动设置这些参数需要梯度
+test_params = torch.tensor([1.0, 0.0, 1.0], requires_grad=True)		
+
+def loss_fn(t_p, t_c):
+    squared_diffs = (t_p - t_c)**2
+    return squared_diffs.mean()
+
+
+outputs = model_test(2, *test_params)
+
+outputs.retain_grad()		#使用该函数保存loss对output的求导结果
+loss = loss_fn(outputs, 9)	#计算loss
+
+loss.backward()				#求导
+print(outputs.grad)			#打印loss对output的求导结果
+
+
+======输出========
+tensor(-8.)					#loss对output的求导结果就是-8
+```
+
+
+
+
+
+```python
+import torch
+import torch.nn as nn
+
+# 定义两层全连接网络
+class Net(nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(13, 128)  # 输入层到隐藏层
+        self.fc2 = nn.Linear(128, 3)    # 隐藏层到输出层
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
+# 初始化模型和输入
+model = Net()
+x = torch.randn(1, 13)  # 生成一个样本 (batch_size=1, input_dim=13)
+
+# 前向传播
+output = model(x)
+
+# 已知损失函数对输出的导数为0.789
+output_grad = torch.tensor([[0.789,1.22,0.456]], dtype=torch.float)  # 关键修复: 使用二维张量[1,1]
+
+# 清除现有梯度（重要！）
+model.zero_grad()
+
+# 反向传播：将已知梯度传入backward()
+output.backward(gradient=output_grad)
+
+# 验证梯度传播结果（可选）
+print("梯度检查:")
+print(f"输出层权重梯度: {model.fc2.weight.grad}")
+print(f"输出层偏置梯度: {model.fc2.bias.grad}")
+print(f"隐藏层权重梯度: {model.fc1.weight.grad}")
+print(f"隐藏层偏置梯度: {model.fc1.bias.grad}")
+```
+

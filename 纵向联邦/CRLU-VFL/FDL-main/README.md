@@ -1,3 +1,0 @@
-# FDL
-
-Federated data learning.
